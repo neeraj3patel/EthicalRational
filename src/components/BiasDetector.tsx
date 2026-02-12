@@ -38,8 +38,8 @@ const BiasDetector = () => {
     setAnalysis(null); // Clear previous results
 
     try {
-      const apiBase = import.meta.env.VITE_API_BASE_URL || '/api';
-      const response = await fetch(`${apiBase}/analyze-text`, {
+     const apiBase = import.meta.env.VITE_API_BASE_URL || '/api';
+const response = await fetch(`${apiBase}/analyze-text`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -48,13 +48,24 @@ const BiasDetector = () => {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to analyze text');
+        let errorMessage = 'Failed to analyze text';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.details || errorMessage;
+        } catch {
+          errorMessage = `Server error: ${response.status} ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      const responseText = await response.text();
+      if (!responseText) {
+        throw new Error('Empty response from server');
       }
 
       // FIX 2: Correctly handle the API response.
       // The backend sends the JSON object directly. We assign it directly to `data`.
-      const data: BiasAnalysis = await response.json();
+      const data: BiasAnalysis = JSON.parse(responseText);
       
       setAnalysis(data);
       
